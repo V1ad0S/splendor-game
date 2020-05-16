@@ -1,19 +1,25 @@
 import pygame as pg
 
+COLORS = {
+    "brown": [(128, 64, 0), (64, 32, 0),],
+    "white": [(240, 240, 240), (210, 210, 210)],
+    "red": [(210, 0, 0), (105, 0, 0)],
+    "green": [(0, 210, 0), (0, 105, 0)],
+    "blue": [(0, 0, 210), (0, 0, 105)]
+}
+
+def write_formated_letter(surface: 'pg.Surface', letter: str, coords: tuple):
+    fonts = [[pg.font.Font(None, 111), (0, 0, 0)],
+             [pg.font.Font(None, 85), (0, 0, 0)],
+             [pg.font.Font(None, 100), (255, 255, 255)]]
+    x, y = coords
+    for font, i, j in zip(fonts, [x-2, x+3, x], [y-3, y+5, y]):
+        surface.blit(font[0].render(str(letter), 1, font[1]), (i, j))
+
 
 class GGemsInfo(pg.Surface):
     def __init__(self, assets: list, bonus: list):
         super(GGemsInfo, self).__init__((600, 100))
-        self.fonts = [[pg.font.Font(None, 111), (0, 0, 0)],
-                      [pg.font.Font(None, 85), (0, 0, 0)],
-                      [pg.font.Font(None, 100), (255, 255, 255)]]
-        self.colors = {
-            "brown": [(128, 64, 0), (64, 32, 0),],
-            "white": [(240, 240, 240), (210, 210, 210)],
-            "red": [(210, 0, 0), (105, 0, 0)],
-            "green": [(0, 210, 0), (0, 105, 0)],
-            "blue": [(0, 0, 210), (0, 0, 105)]
-        }
         self.info = []
         for i in range(5):
             gem = {"surf": pg.Surface((108, 90)),
@@ -22,17 +28,15 @@ class GGemsInfo(pg.Surface):
         self.update(assets, bonus)
 
     def update(self, assets: list, bonus: list):
-        for gem, asset, bon, color in zip(self.info, assets, bonus, self.colors.values()):
+        for gem, asset, bon, color in zip(self.info, assets, bonus, COLORS.values()):
             gem['surf'].fill(color[1])
             surf = pg.Surface((49, 80))
             surf.fill(color[0])
             if bon:
-                for font, x, y in zip(self.fonts, [4, 9, 6], [7, 15, 10]):
-                    surf.blit(font[0].render(str(bon), 1, font[1]), (x, y))
+                write_formated_letter(surf, str(bon), (6, 10))
             gem['surf'].blit(surf, (5, 5))
             if asset:
-                for font, x, y in zip(self.fonts, [61, 66, 63], [12, 20, 15]):
-                    gem['surf'].blit(font[0].render(str(asset), 1, font[1]), (x, y))
+                write_formated_letter(gem['surf'], str(asset), (63, 15))
             self.blit(gem['surf'], (gem["x_coord"], 5))
 
 
@@ -55,15 +59,32 @@ class GPlayer(pg.Surface):
 
 
 class GBank(pg.Surface):
-    def __init__(self):
-        super(GBank, self).__init__((250, 380))
+    def __init__(self, gems: list, gold: int):
+        super(GBank, self).__init__((70, 420))
+        self.gold = pg.Surface((70, 70))
+        self.gems = []
+        for i in range(5):
+            gem = {"surf": pg.Surface((70, 70)),
+                   "y_coord": 70 * (i+1)}
+            self.gems.append(gem)
+        self.update(gems, gold)
+
+    def update(self, gems: list, gold: int):
+        pg.draw.circle(self.gold, (255, 255, 0), (35, 35), 35)
+        write_formated_letter(self.gold, str(gold), (16, 4))
+        for gem, count, color in zip(self.gems, gems, COLORS.values()):
+            pg.draw.circle(gem['surf'], color[0], (35, 35), 35)
+            write_formated_letter(gem['surf'], count, (16, 4))
+            self.blit(gem['surf'], (0, gem['y_coord']))
+        self.blit(self.gold, (0, 0))
+
 
 
 class GGame:
     def __init__(self):
         pg.init()
         pg.display.set_caption("Splendor Game")
-        pg.time.delay(60)
+        pg.time.delay(100)
         self.size = (1280, 720)
         self.screen = pg.display.set_mode(self.size)
         self.done = False
@@ -76,11 +97,12 @@ class GGame:
 
     def field_init(self):
         self.cardfield = GCardField()
-        self.bank = GBank()
+        self.bank = GBank([0, 0, 0, 0, 0], 5)
 
     def update_components(self):
         self.player.update([0, 1, 2, 3, 4], [5, 6, 7, 8, 9])
         self.opponent.update([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])
+        self.bank.update([0, 0, 0, 0, 0], 5)
 
     def draw(self):
         self.update_components()
@@ -88,7 +110,7 @@ class GGame:
         self.screen.blit(self.player, (50, 590))
         self.screen.blit(self.opponent, (50, 30))
         self.screen.blit(self.cardfield, (100, 150))
-        self.screen.blit(self.bank, (930, 170))
+        self.screen.blit(self.bank, (930, 150))
         pg.display.update()
 
     def main(self):
