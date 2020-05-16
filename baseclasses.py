@@ -121,27 +121,17 @@ class Card:
         return f"Card({self.id_string}, {self.price})"
 
 
-class Noble:
-    def __init__(self, noble_id: str, points: int, price: list):
-        self.id_string = noble_id
-        self.points = points
-        self.price = GemSet(price)
-
-    def will_visit(self, bonus):
-        return bonus > self.price
-
-
 class Deck:
     """Deck's class for game Splendor"""
-    def __init__(self, class_of_card: 'Card or Noble', cards: dict):
-        self.deck = [class_of_card(card_id, **card_values)
+    def __init__(self, cards: dict):
+        self.deck = [Card(card_id, **card_values)
                      for (card_id, card_values) in cards.items()]
         self.shuffle()
 
     def shuffle(self):
         random.shuffle(self.deck)
 
-    def pop(self) -> 'Card or Noble':
+    def pop(self) -> 'Card':
         if self.deck:
             return self.deck.pop()
         return None
@@ -150,7 +140,7 @@ class Deck:
 class CardField:
     """CardField's class for game Splendor"""
     def __init__(self, decks: list):
-        self.decks = [Deck(Card, deck) for deck in decks]
+        self.decks = [Deck(deck) for deck in decks]
         self.cards_in_row = 4 # The number of cards in a row of open cards
         self.open_cards = [[] for i in range(len(decks))]
 
@@ -186,7 +176,6 @@ class Player:
     def __init__(self, name: str):
         self.name = name
         self.hand = []
-        self.nobles = []
         self.assets = GemSet([0, 0, 0, 0, 0])
         self.bonus = GemSet([0, 0, 0, 0, 0])
         self.gold = 0
@@ -243,19 +232,15 @@ class Player:
 
 
 class Game:
-    def __init__(self, decks: list, nobles: dict, players: list):
+    def __init__(self, decks: list, players: list):
         self.players = players
         self.current_player = players[0]
         self.cardfield = CardField(decks)
-        self.nobles = Deck(Noble, nobles)
-        self.open_nobles = []
         self.bank = Bank(len(players))
         self.game_over = False
 
     def lay_out_all(self):
         self.cardfield.lay_out()
-        for _ in range(len(self.players) + 1):
-            self.open_nobles.append(self.nobles.pop())
 
     def take_three_gems(self, colors: list) -> bool:
         if self.bank.can_take_three_different(colors):
