@@ -43,7 +43,12 @@ class GGemsInfo(pg.Surface):
 
 class GCardField(pg.Surface):
     def __init__(self):
-        super(GCardField, self).__init__((800, 420))
+        super(GCardField, self).__init__((700, 550))
+
+    def update(self):
+        test = pg.Surface((130, 180))
+        test.fill((128, 0, 0))
+        self.blit(test, (0, 0))
 
 
 class GPlayer(pg.Surface):
@@ -85,7 +90,7 @@ class GGame:
         pg.init()
         pg.display.set_caption("Splendor Game")
         pg.time.delay(100)
-        self.size = (1280, 720)
+        self.size = (1280, 800)
         self.screen = pg.display.set_mode(self.size)
         self.done = False
         self.players_init()
@@ -100,6 +105,7 @@ class GGame:
         self.bank = GBank([0, 0, 0, 0, 0], 5)
 
     def update_components(self):
+        self.cardfield.update()
         self.player.update([0, 1, 2, 3, 4], [5, 6, 7, 8, 9])
         self.opponent.update([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])
         self.bank.update([0, 0, 0, 0, 0], 5)
@@ -107,10 +113,10 @@ class GGame:
     def draw(self):
         self.update_components()
         self.screen.fill((200, 200, 200))
-        self.screen.blit(self.player, (50, 590))
-        self.screen.blit(self.opponent, (50, 30))
-        self.screen.blit(self.cardfield, (100, 150))
-        self.screen.blit(self.bank, (930, 150))
+        self.screen.blit(self.player, (50, 700))
+        self.screen.blit(self.opponent, (50, 0))
+        self.screen.blit(self.cardfield, (100, 120))
+        self.screen.blit(self.bank, (1130, 150))
         pg.display.update()
 
     def main(self):
