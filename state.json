@@ -1,0 +1,28 @@
+{
+	"Players": {
+		"Player1": {
+			"name": "Player_1_name",
+			"hand": [],
+			"assets": [0, 0, 0, 0, 0],
+			"bonus": [0, 0, 0, 0, 0],
+			"gold": 0,
+			"points": 0
+		},
+		"Player2": {
+			"name": "Player_2_name",
+			"hand": [],
+			"assets": [0, 0, 0, 0, 0],
+			"bonus": [0, 0, 0, 0, 0],
+			"gold": 0,
+			"points": 0
+		}
+	},
+	"CardField": {
+		"open_cards": [[], [], []],
+		"decks_card_count": [30, 40, 50]
+	},
+	"Bank": {
+		"gold": 5,
+		"gems": [5, 5, 5, 5, 5]
+	}
+}

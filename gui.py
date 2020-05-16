@@ -5,11 +5,11 @@ class GGemsInfo(pg.Surface):
     def __init__(self, assets: list, bonus: list):
         super(GGemsInfo, self).__init__((600, 100))
         self.colors = {
-            "brown": (128, 64, 0),
-            "white": (255, 255, 255),
-            "red": (210, 0, 0),
-            "green": (0, 210, 0),
-            "blue": (0, 0, 210)
+            "brown": [(128, 64, 0), (64, 32, 0),],
+            "white": [(255, 255, 255), (210, 210, 210)],
+            "red": [(210, 0, 0), (105, 0, 0)],
+            "green": [(0, 210, 0), (0, 105, 0)],
+            "blue": [(0, 0, 210), (0, 0, 105)]
         }
         self.gems = []
         for i in range(5):
@@ -20,7 +20,7 @@ class GGemsInfo(pg.Surface):
 
     def update(self, assets: list, bonus: list):
         for gem, asset, bon, color in zip(self.gems, assets, bonus, self.colors.values()):
-            gem['surf'].fill(color)
+            gem['surf'].fill(color[1])
             self.blit(gem['surf'], (gem["x_coord"], 5))
 
 
@@ -47,7 +47,7 @@ class GBank(pg.Surface):
         super(GBank, self).__init__((250, 380))
 
 
-class Game:
+class GGame:
     def __init__(self):
         pg.init()
         pg.display.set_caption("Splendor Game")
@@ -86,4 +86,4 @@ class Game:
                         self.done = True
             self.draw()
 
-Game().main()
+GGame().main()
