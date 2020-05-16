@@ -4,23 +4,35 @@ import pygame as pg
 class GGemsInfo(pg.Surface):
     def __init__(self, assets: list, bonus: list):
         super(GGemsInfo, self).__init__((600, 100))
+        self.fonts = [[pg.font.Font(None, 111), (0, 0, 0)],
+                      [pg.font.Font(None, 85), (0, 0, 0)],
+                      [pg.font.Font(None, 100), (255, 255, 255)]]
         self.colors = {
             "brown": [(128, 64, 0), (64, 32, 0),],
-            "white": [(255, 255, 255), (210, 210, 210)],
+            "white": [(240, 240, 240), (210, 210, 210)],
             "red": [(210, 0, 0), (105, 0, 0)],
             "green": [(0, 210, 0), (0, 105, 0)],
             "blue": [(0, 0, 210), (0, 0, 105)]
         }
-        self.gems = []
+        self.info = []
         for i in range(5):
             gem = {"surf": pg.Surface((108, 90)),
                    "x_coord": 10 + 118 * i}
-            self.gems.append(gem)
+            self.info.append(gem)
         self.update(assets, bonus)
 
     def update(self, assets: list, bonus: list):
-        for gem, asset, bon, color in zip(self.gems, assets, bonus, self.colors.values()):
+        for gem, asset, bon, color in zip(self.info, assets, bonus, self.colors.values()):
             gem['surf'].fill(color[1])
+            surf = pg.Surface((49, 80))
+            surf.fill(color[0])
+            if bon:
+                for font, x, y in zip(self.fonts, [4, 9, 6], [7, 15, 10]):
+                    surf.blit(font[0].render(str(bon), 1, font[1]), (x, y))
+            gem['surf'].blit(surf, (5, 5))
+            if asset:
+                for font, x, y in zip(self.fonts, [61, 66, 63], [12, 20, 15]):
+                    gem['surf'].blit(font[0].render(str(asset), 1, font[1]), (x, y))
             self.blit(gem['surf'], (gem["x_coord"], 5))
 
 
@@ -34,12 +46,12 @@ class GPlayer(pg.Surface):
     def __init__(self, name: str, assets: list, bonus: list):
         super(GPlayer, self).__init__((1150, 100))
         self.name = pg.font.Font(None, 36).render(name, 1, (255, 255, 255))
-        self.gems = GGemsInfo(assets, bonus)
+        self.info = GGemsInfo(assets, bonus)
 
-    def update(self):
+    def update(self, assets: list, bonus: list):
         self.blit(self.name, (10, 40))
-        self.gems.update([0, 0, 0, 0, 0], [0, 0, 0, 0, 0])
-        self.blit(self.gems, (220, 0))
+        self.info.update(assets, bonus)
+        self.blit(self.info, (220, 0))
 
 
 class GBank(pg.Surface):
@@ -67,8 +79,8 @@ class GGame:
         self.bank = GBank()
 
     def update_components(self):
-        self.player.update()
-        self.opponent.update()
+        self.player.update([0, 1, 2, 3, 4], [5, 6, 7, 8, 9])
+        self.opponent.update([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])
 
     def draw(self):
         self.update_components()
