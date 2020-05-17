@@ -1,28 +1,25 @@
 {
-	"Players": {
-		"Player1": {
+	"players": {
+		"1": {
 			"name": "Player_1_name",
-			"hand": [],
-			"assets": [0, 0, 0, 0, 0],
+			"assets": [0, 9, 0, 0, 0],
 			"bonus": [0, 0, 0, 0, 0],
-			"gold": 0,
 			"points": 0
 		},
-		"Player2": {
+		"2": {
 			"name": "Player_2_name",
-			"hand": [],
 			"assets": [0, 0, 0, 0, 0],
 			"bonus": [0, 0, 0, 0, 0],
-			"gold": 0,
-			"points": 0
+			"points": 1
 		}
 	},
-	"CardField": {
-		"open_cards": [[], [], []],
-		"decks_card_count": [30, 40, 50]
+	"cardfield": {
+		"open_cards": [["1303353", "4335303", "5507003", "1303353"],
+						["1001111", "3031100", "5000131", "3031100"],
+						["2120230", "3132200", "4300060", "3132200"]],
+		"decks_card_count": [40, 30, 20]
 	},
-	"Bank": {
-		"gold": 5,
-		"gems": [5, 5, 5, 5, 5]
+	"bank": {
+		"gems": [5, 5, 1, 5, 5]
 	}
 }

@@ -48,7 +48,6 @@ class GemSet:
 class Bank:
     """docstring for Bank"""
     def __init__(self, players_number: int):
-        self.gold = 5
         gems_per_color = 7
         if players_number == 2:
             gems_per_color = 4
@@ -58,16 +57,7 @@ class Bank:
         self.gems = GemSet(gems)
 
     def __str__(self):
-        return str(self.gems) + f"  Gold: {self.gold}"
-
-    def add_gold(self, count):
-        self.gold += count
-
-    def dec_gold(self):
-        if self.gold:
-            self.gold = max(0, self.gold - 1)
-            return True
-        return False
+        return str(self.gems)
 
     def add_gemset(self, gemset: 'GemSet'):
         self.gems += gemset
@@ -111,8 +101,8 @@ class Card:
         self.points = points
         self.price = GemSet(price)
 
-    def can_be_bought(self, assets: 'GemSet', bonus: 'GemSet', gold: int) -> bool:
-        return (self.price - (assets + bonus)).get_count() <= gold
+    def can_be_bought(self, assets: 'GemSet', bonus: 'GemSet') -> bool:
+        return (self.price - (assets + bonus)).get_count() == 0
 
     def __str__(self):
         return f"Id: {self.id_string}, Price: {self.price}"
@@ -175,10 +165,8 @@ class CardField:
 class Player:
     def __init__(self, name: str):
         self.name = name
-        self.hand = []
         self.assets = GemSet([0, 0, 0, 0, 0])
         self.bonus = GemSet([0, 0, 0, 0, 0])
-        self.gold = 0
         self.points = 0
 
     def add_gemset(self, gemset: 'GemSet'):
@@ -187,48 +175,20 @@ class Player:
     def remove_gemset(self, gemset: 'GemSet'):
         self.assets -= gemset
 
-    def inc_gold(self):
-        self.gold += 1
-
-    def remove_gold(self, amount: int):
-        self.gold = max(0, self.gold - max(0, amount))
-
-    def get_hand_size(self) -> int:
-        return len(self.hand)
-
     def get_token_count(self) -> int:
-        return self.assets.get_count() + self.gold
+        return self.assets.get_count()
 
     def get_pay_info(self) -> list:
-        return [self.assets, self.bonus, self.gold]
+        return [self.assets, self.bonus]
 
     def add_card(self, card: 'Card') -> list:
-        """Returns gems and gold that must be returned to the bank"""
-        gold_for_return = (card.price - self.bonus - self.assets).get_count()
+        """Returns gems that must be returned to the bank"""
         gems_for_return = ((card.price - self.bonus)
                            - (card.price - self.bonus - self.assets))
-        self.remove_gold(gold_for_return)
         self.bonus.add_gems(card.color, 1)
         self.points += card.points
         self.remove_gemset(gems_for_return)
-        return [gems_for_return, gold_for_return]
-
-    def add_card_to_hand(self, card: 'Card'):
-        self.hand.append(card)
-
-    def get_card_from_hand(self, index: int):
-        if 0 <= index <= len(self.hand):
-            return self.hand[index]
-        print(f"Index Error: {index}")
-        return None
-
-    def pop_card_from_hand(self, index: int) -> 'Card':
-        if 0 <= index <= len(self.hand):
-            card = self.hand[index]
-            del self.hand[index]
-            return card
-        print(f"Index Error: {index}")
-        return None
+        return gems_for_return
 
 
 class Game:
@@ -261,43 +221,16 @@ class Game:
             if card.can_be_bought(*self.current_player.get_pay_info()):
                 return_gems = self.current_player.add_card(card)
                 self.cardfield.pop_card(pos)
-                self.bank.add_gemset(return_gems[0])
-                self.bank.add_gold(return_gems[1])
+                self.bank.add_gemset(return_gems)
                 return True
             print(f"Can't afford that card: {pos}.")
         else:
             print(f"Card[{pos}] doesn't exist.")
         return False
 
-    def buy_hand_card(self, index: int) -> bool:
-        if card := self.current_player.get_card_from_hand(index):
-            if card.can_be_bought(*self.current_player.get_pay_info()):
-                self.current_player.pop_card_from_hand(index)
-                return_gems = self.current_player.add_card(card)
-                self.bank.add_gemset(return_gems[0])
-                self.bank.add_gold(return_gems[1])
-                return True
-            print(f"Can't afford that card: {index}.")
-        else:
-            print(f"Card[{index}] doesn't exist.")
-        return False
-
-    def reserve_card(self, pos: tuple) -> bool:
-        if self.current_player.get_hand_size() >= 3:
-            print("You have too many reservations.")
-            return False
-        if card := self.cardfield.pop_card(pos):
-            self.current_player.add_card_to_hand(card)
-            if self.bank.dec_gold():
-                self.current_player.inc_gold()
-            return True
-        print(f"Card[{pos}] doesn't exist.")
-        return False
-
     def end_turn_checks(self):
         """
         1. Checks if player has more than 10 tokens.
-        2. Checks for noble visits.
-        3. Shifts current to next player.
-        4. If round is complete, checks if a player has won.
+        2. Shifts current to next player.
+        3. If round is complete, checks if a player has won.
         """
