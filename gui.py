@@ -1,7 +1,8 @@
 import pygame as pg
 
 # добавить в GCard.update обработку None
-
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 COLORS = {
     "1": [(128, 64, 0), (64, 32, 0),],
     "2": [(240, 240, 240), (210, 210, 210)],
@@ -10,14 +11,14 @@ COLORS = {
     "5": [(0, 0, 210), (0, 0, 105)]
 }
 
-def write_formated_letter(surface: 'pg.Surface', letter: str,
-                          coords: tuple, color=(255, 255, 255)):
-    fonts = [[pg.font.Font(None, 111), (0, 0, 0)],
-             [pg.font.Font(None, 85), (0, 0, 0)],
+def write_formated_digit(surface: 'pg.Surface', digit: str,
+                          coords: tuple, color=WHITE):
+    fonts = [[pg.font.Font(None, 111), BLACK],
+             [pg.font.Font(None, 85), BLACK],
              [pg.font.Font(None, 100), color]]
     x, y = coords
     for font, i, j in zip(fonts, [x-2, x+3, x], [y-3, y+5, y]):
-        surface.blit(font[0].render(str(letter), 1, font[1]), (i, j))
+        surface.blit(font[0].render(str(digit), 1, font[1]), (i, j))
 
 
 class GGemsInfo(pg.Surface):
@@ -36,10 +37,10 @@ class GGemsInfo(pg.Surface):
             gem['surf_1'].fill(color[1])
             gem['surf_2'].fill(color[0])
             if bon:
-                write_formated_letter(gem['surf_2'], str(bon), (6, 10))
+                write_formated_digit(gem['surf_2'], str(bon), (6, 10))
             gem['surf_1'].blit(gem['surf_2'], (5, 5))
             if asset:
-                write_formated_letter(gem['surf_1'], str(asset), (63, 15))
+                write_formated_digit(gem['surf_1'], str(asset), (63, 15))
             self.blit(gem['surf_1'], (gem["x_coord"], 5))
 
 
@@ -49,13 +50,11 @@ class GCard(pg.Surface):
         self.update(id)
 
     def update(self, id):
-        WHITE = (255, 255, 255)
-        BLACK = (0, 0, 0)
-        color = COLORS[id[0]][0]
+        color = COLORS[id[0]][1]
         price_list = list(filter(lambda x: x[0] != '0', zip(id[2:], COLORS.values())))
         points = id[1]
-        self.fill((10, 87, 87))
-        write_formated_letter(self, points, (80, 0), color)
+        self.fill(color)
+        write_formated_digit(self, points, (80, 0))
         i = 0
         for price in price_list:
             x, y = (23 + 41*(i % 3), 90 + 60*(i // 3))
@@ -88,7 +87,7 @@ class GCardField(pg.Surface):
 class GPlayer(pg.Surface):
     def __init__(self, name: str, assets: list, bonus: list):
         super(GPlayer, self).__init__((1150, 100))
-        self.name = pg.font.Font(None, 36).render(name, 1, (255, 255, 255))
+        self.name = pg.font.Font(None, 36).render(name, 1, WHITE)
         self.info = GGemsInfo(assets, bonus)
 
     def update(self, assets: list, bonus: list):
@@ -110,10 +109,10 @@ class GBank(pg.Surface):
 
     def update(self, gems: list, gold: int):
         pg.draw.circle(self.gold, (255, 255, 0), (35, 35), 35)
-        write_formated_letter(self.gold, str(gold), (16, 4))
+        write_formated_digit(self.gold, str(gold), (16, 4))
         for gem, count, color in zip(self.gems, gems, COLORS.values()):
             pg.draw.circle(gem['surf'], color[0], (35, 35), 35)
-            write_formated_letter(gem['surf'], count, (16, 4))
+            write_formated_digit(gem['surf'], count, (16, 4))
             self.blit(gem['surf'], (0, gem['y_coord']))
         self.blit(self.gold, (0, 0))
 
