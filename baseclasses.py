@@ -1,5 +1,5 @@
+import json
 import random
-
 
 
 class GemSet:
@@ -28,6 +28,9 @@ class GemSet:
 
     def __str__(self):
         return ' '.join([str(gem) for gem in self.gems.values()])
+
+    def get_gems_list(self):
+        return list(self.gems.values())
 
     def get_keys(self) -> 'dict_keys':
         return self.gems.keys()
@@ -58,6 +61,9 @@ class Bank:
 
     def __str__(self):
         return str(self.gems)
+
+    def get_gems_count(self):
+        return self.gems.get_gems_list()
 
     def add_gemset(self, gemset: 'GemSet'):
         self.gems += gemset
@@ -140,6 +146,9 @@ class CardField:
             res += repr(row) + '\n'
         return res
 
+    def get_decks_card_count(self):
+        return [len(d.deck) for d in self.decks]
+
     def lay_out(self):
         for (deck, cards_row) in zip(self.decks, self.open_cards):
             for _ in range(self.cards_in_row):
@@ -192,34 +201,39 @@ class Player:
 
 
 class Game:
-    def __init__(self, decks: list, players: list):
+    def __init__(self, players: list):
         self.players = players
-        self.current_player = players[0]
-        self.cardfield = CardField(decks)
+        self.cur_p_ind = 0
         self.bank = Bank(len(players))
         self.game_over = False
+        self.init_cardfield()
+
+    def init_cardfield(self):
+        with open('decks.json', 'r') as jdecks:
+            decks = json.load(jdecks)
+            self.cardfield = CardField(list(decks.values()))
 
     def lay_out_all(self):
         self.cardfield.lay_out()
 
     def take_three_gems(self, colors: list) -> bool:
         if self.bank.can_take_three_different(colors):
-            self.current_player.add_gemset(self.bank.take_three_different(colors))
+            self.players[self.cur_p_ind].add_gemset(self.bank.take_three_different(colors))
             return True
         print(f"Can't take 3 different gems: {colors}")
         return False
 
     def take_two_gems(self, color: str) -> bool:
         if self.bank.can_take_two_same(color):
-            self.current_player.add_gemset(self.bank.take_two_same(color))
+            self.players[self.cur_p_ind].add_gemset(self.bank.take_two_same(color))
             return True
         print(f"Can't take 2 same gems: {color}")
         return False
 
     def buy_board_card(self, pos: tuple) -> bool:
         if card := self.cardfield.get_card(pos):
-            if card.can_be_bought(*self.current_player.get_pay_info()):
-                return_gems = self.current_player.add_card(card)
+            if card.can_be_bought(*self.players[self.cur_p_ind].get_pay_info()):
+                return_gems = self.players[self.cur_p_ind].add_card(card)
                 self.cardfield.pop_card(pos)
                 self.bank.add_gemset(return_gems)
                 return True
@@ -228,9 +242,36 @@ class Game:
             print(f"Card[{pos}] doesn't exist.")
         return False
 
+    def encode_state(self):
+        encode_state = json.dumps(
+            {
+                "current_player": str(self.cur_p_ind + 1),
+                "players": {
+                    "1": {
+                        "name": self.players[0].name,
+                        "assets": self.players[0].assets.get_gems_list(),
+                        "bonus": self.players[0].bonus.get_gems_list(),
+                        "points": self.players[0].points
+                    },
+                    "2": {
+                        "name": self.players[1].name,
+                        "assets": self.players[1].assets.get_gems_list(),
+                        "bonus": self.players[1].bonus.get_gems_list(),
+                        "points": self.players[1].points
+                    }
+                },
+                "cardfield": {
+                    "open_cards": self.cardfield.open_cards,
+                    "decks_card_count": self.cardfield.get_decks_card_count(),
+                },
+                "bank": {
+                    "gems": self.bank.get_gems_count()
+                }
+            }
+        )
+        return encode_state
+
     def end_turn_checks(self):
-        """
-        1. Checks if player has more than 10 tokens.
-        2. Shifts current to next player.
-        3. If round is complete, checks if a player has won.
-        """
+        if self.players[self.cur_p_ind].points >= 15:
+            self.game_over = True
+        self.cur_p_ind = (self.cur_p_ind + 1) % 2

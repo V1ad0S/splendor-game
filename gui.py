@@ -1,5 +1,6 @@
 import json
 import pygame as pg
+import time
 
 # добавить в GCard.update обработку None
 WHITE = (255, 255, 255)
@@ -70,8 +71,8 @@ class GCard(pg.Surface):
 
 
 class GCardField(pg.Surface):
-    def __init__(self, open_cards: list, decks_card_count: list):
-        super(GCardField, self).__init__((700, 550))
+    def __init__(self, size: tuple, open_cards: list, decks_card_count: list):
+        super(GCardField, self).__init__((size))
         self.open_cards = [[GCard(id) for id in row] for row in open_cards]
         self.decks = [pg.Surface((130, 180))] * 3
         self.update(open_cards, decks_card_count)
@@ -110,18 +111,19 @@ class GPlayer(pg.Surface):
 
 
 class GBank(pg.Surface):
-    def __init__(self, gems: list):
-        super(GBank, self).__init__((70, 350))
+    def __init__(self, size: tuple, gems: list):
+        super(GBank, self).__init__(size)
         self.gems = []
         for i in range(5):
-            gem = {"surf": pg.Surface((70, 70)),
-                   "y_coord": 70 * i}
+            gem = {"surf": pg.Surface((size[0], size[0])),
+                   "y_coord": size[0] * i}
             self.gems.append(gem)
         self.update(gems)
 
     def update(self, gems: list):
+        rad = round(self.get_width() / 2)
         for gem, count, color in zip(self.gems, gems, COLORS.values()):
-            pg.draw.circle(gem['surf'], color[0], (35, 35), 35)
+            pg.draw.circle(gem['surf'], color[0], (rad, rad), rad)
             write_formated_digit(gem['surf'], count, (16, 4))
             self.blit(gem['surf'], (0, gem['y_coord']))
 
@@ -132,6 +134,7 @@ class State:
         self.update(state)
 
     def update(self, upd_state: dict):
+        self.cur_player = upd_state['current_player']
         self.players = upd_state['players']
         self.cardfield = upd_state['cardfield']
         self.bank = upd_state['bank']
@@ -143,6 +146,8 @@ class GGame:
         pg.display.set_caption("Splendor Game")
         pg.time.delay(100)
         self.size = (1280, 800)
+        self.cardfield_coords = [(100, 120), (700, 550)]
+        self.bank_coords = [(1130, 150), (70, 350)]
         self.screen = pg.display.set_mode(self.size)
         self.done = False
         self.state_init(players_id)
@@ -161,9 +166,10 @@ class GGame:
         self.opponent = GPlayer(oppon['name'], oppon['assets'], oppon['bonus'])
 
     def field_init(self):
-        self.cardfield = GCardField(self.state.cardfield['open_cards'],
+        self.cardfield = GCardField(self.cardfield_coords[1],
+                                    self.state.cardfield['open_cards'],
                                     self.state.cardfield['decks_card_count'])
-        self.bank = GBank(self.state.bank['gems'])
+        self.bank = GBank(self.bank_coords[1], self.state.bank['gems'])
 
     def update_state(self):
         with open('state.json', 'r') as state_file:
@@ -184,15 +190,40 @@ class GGame:
         self.screen.fill((200, 200, 200))
         self.screen.blit(self.player, (50, 700))
         self.screen.blit(self.opponent, (50, 0))
-        self.screen.blit(self.cardfield, (100, 120))
-        self.screen.blit(self.bank, (1130, 150))
+        self.screen.blit(self.cardfield, self.cardfield_coords[0])
+        self.screen.blit(self.bank, self.bank_coords[0])
         pg.display.update()
+
+    def check_card_click(self, pos):
+        (x, y), (w, h) = self.cardfield_coords
+        if pos[0] < x or pos[0] > (x + w - 165) or pos[1] < y or pos[1] > (y + h):
+            return False
+        click_pos = (pos[0] - x, pos[1] - y)
+        card_coord = (click_pos[0] // 135, click_pos[1] // 185)
+        return card_coord
+
+    def check_bank_click(self, pos):
+        (x, y), (w, h) = self.bank_coords
+        if pos[0] < x or pos[0] > (x + w) or pos[1] < y or pos[1] > (y + h):
+            return False
+        num = (pos[1] - y) // w
+        rad = round(w / 2)
+        x_r, y_r = ((pos[0] - rad - x), ((pos[1] - y) % w - rad))
+        if (x_r ** 2 + y_r ** 2) < rad ** 2:
+            return num
+        return False
 
     def main(self):
         while not self.done:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.done = True
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    if self.state.cur_player == self.state.id[0] and event.button == 1:
+                        print(self.check_card_click(event.pos))
+                        print(self.check_bank_click(event.pos))
+
             self.draw()
 
-GGame(['1', '2']).main()
+if __name__ == '__main__':
+    GGame(['1', '2']).main()
