@@ -245,15 +245,15 @@ class Game:
     def encode_state(self):
         encode_state = json.dumps(
             {
-                "current_player": str(self.cur_p_ind + 1),
+                "current_player": str(self.cur_p_ind),
                 "players": {
-                    "1": {
+                    "0": {
                         "name": self.players[0].name,
                         "assets": self.players[0].assets.get_gems_list(),
                         "bonus": self.players[0].bonus.get_gems_list(),
                         "points": self.players[0].points
                     },
-                    "2": {
+                    "1": {
                         "name": self.players[1].name,
                         "assets": self.players[1].assets.get_gems_list(),
                         "bonus": self.players[1].bonus.get_gems_list(),

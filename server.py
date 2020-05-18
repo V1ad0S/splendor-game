@@ -1,46 +1,44 @@
-import socket
-from _thread import *
-import sys
-
-IP = str(sys.argv[1])
-PORT = int(sys.argv[2])
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-try:
-    s.bind((IP, PORT))
-except socket.error as e:
-    str(e)
-
-s.listen(2)
-print("Waiting for a connection, Server Started")
+import sys, socket
 
 
-def threaded_client(conn):
-    conn.send(str.encode("Connected"))
-    reply = ""
-    while True:
-        try:
-            data = conn.recv(2048)
-            reply = data.decode("utf-8")
+IP = 'localhost'
+PORT = 8000
 
-            if not data:
-                print("Disconnected")
-                break
-            else:
-                print("Received: ", reply)
-                print("Sending : ", reply)
+SERVER_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+SERVER_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+SERVER_SOCKET.bind((IP, PORT))
+SERVER_SOCKET.listen()
 
-            conn.sendall(str.encode(reply))
-        except:
-            break
+players = []
 
-    print("Lost connection")
-    conn.close()
+print(f'Listening for connections on {IP}:{PORT}...')
+
+
+def new_connection(client_socket, client_address):
+    if len(players) >= 2:
+        return False
+    # player should send his name
+    user = client_socket.recv(1024).decode('utf-8')
+    # player disconnected before he sent his name
+    if not user:
+        return False
+    players.append(client_socket)
+    print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user))
+
+    return True
+
 
 
 while True:
-    conn, addr = s.accept()
-    print("Connected to:", addr)
+    try:
+        connection = SERVER_SOCKET.accept()
+        new_connection(*connection)
+    except KeyboardInterrupt:
+        print('\nServer shutdown')
+        SERVER_SOCKET.close()
+        sys.exit()
 
-    start_new_thread(threaded_client, (conn,))
+    if len(players) == 2:
+        for i in range(len(players)):
+            players[i].send(str(i).encode('utf-8'))
+        print('Game started!')
