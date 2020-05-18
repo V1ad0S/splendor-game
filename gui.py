@@ -128,6 +128,16 @@ class GBank(pg.Surface):
             self.blit(gem['surf'], (0, gem['y_coord']))
 
 
+class GButton(pg.Surface):
+    def __init__(self, name: str):
+        super(GButton, self).__init__((200, 100))
+        self.name = pg.font.Font(None, 36).render(name, 1, WHITE)
+
+    def update(self):
+        self.fill(BLACK)
+        self.blit(self.name, (10, 32))
+
+
 class State:
     def __init__(self, players_id: list, state: dict):
         self.id = players_id    # [player_id, opponent_id]
@@ -170,6 +180,8 @@ class GGame:
                                     self.state.cardfield['open_cards'],
                                     self.state.cardfield['decks_card_count'])
         self.bank = GBank(self.bank_coords[1], self.state.bank['gems'])
+        self.take_two_gems = GButton("Take 2 gems")
+        self.take_three_gems = GButton("Take 3 gems")
 
     def update_state(self):
         with open('state.json', 'r') as state_file:
@@ -184,6 +196,8 @@ class GGame:
         self.cardfield.update(self.state.cardfield['open_cards'],
                               self.state.cardfield['decks_card_count'])
         self.bank.update(self.state.bank['gems'])
+        self.take_two_gems.update()
+        self.take_three_gems.update()
 
     def draw(self):
         self.update()
@@ -192,7 +206,17 @@ class GGame:
         self.screen.blit(self.opponent, (50, 0))
         self.screen.blit(self.cardfield, self.cardfield_coords[0])
         self.screen.blit(self.bank, self.bank_coords[0])
+        self.screen.blit(self.take_two_gems, (850, 250))
+        self.screen.blit(self.take_three_gems, (850, 400))
         pg.display.update()
+
+    def check_button_click(self, pos):
+        if pos[0] > 850 and pos[0] < 1050:
+            if pos[1] > 250 and pos[1] < 350:
+                return 1
+            elif pos[1] > 400 and pos[1] < 500:
+                return 2
+        return False
 
     def check_card_click(self, pos):
         (x, y), (w, h) = self.cardfield_coords
@@ -222,6 +246,7 @@ class GGame:
                     if self.state.cur_player == self.state.id[0] and event.button == 1:
                         print(self.check_card_click(event.pos))
                         print(self.check_bank_click(event.pos))
+                        print(self.check_button_click(event.pos))
 
             self.draw()
 
