@@ -1,5 +1,5 @@
 import sys, socket, time
-from baseclasses import Player, Game
+from baseclasses import Game
 
 IP = 'localhost'
 PORT = 8000
@@ -10,23 +10,23 @@ SERVER_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 SERVER_SOCKET.bind((IP, PORT))
 SERVER_SOCKET.listen()
 
-players_sockets = []
-players = []
+players_names_sockets = []
+players_names = []
 
 
 print(f'Listening for connections on {IP}:{PORT}...')
 
 
 def new_connection(client_socket, client_address):
-    if len(players_sockets) >= 2:
+    if len(players_names_sockets) >= 2:
         return False
     # player should send his name
     username = client_socket.recv(1024).decode('utf-8')
     # player disconnected before he sent his name
     if not username:
         return False
-    players_sockets.append(client_socket)
-    players.append(Player(username))
+    players_names_sockets.append(client_socket)
+    players_names.append(username)
     print('Accepted new connection from {}:{}, username: {}'.format(*client_address, username))
     return True
 
@@ -51,11 +51,11 @@ while True:
         SERVER_SOCKET.close()
         sys.exit()
 
-    if len(players_sockets) == 2:
-        game = Game(players)
+    if len(players_names_sockets) == 2:
+        game = Game(players_names)
         game.lay_out_all()
         init_state = game.encode_state()
-        for i in range(len(players_sockets)):
-            send_message(players_sockets[i], str(i) + init_state)
+        for i in range(len(players_names_sockets)):
+            send_message(players_names_sockets[i], str(i) + init_state)
             time.sleep(2)
         print('Game started!')

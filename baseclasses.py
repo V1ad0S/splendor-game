@@ -212,7 +212,7 @@ class Player:
 
 class Game:
     def __init__(self, players: list):
-        self.players = players
+        self.players = [Player(player) for player in players]
         self.cur_p_ind = 0
         self.bank = Bank(len(players))
         self.game_over = False

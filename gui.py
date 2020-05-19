@@ -5,6 +5,7 @@ import sys
 
 HEADER_LENGTH = 5
 WHITE = (255, 255, 255)
+GREY = (128, 128, 128)
 BLACK = (0, 0, 0)
 COLORS = {
     "1": [(128, 64, 0), (64, 32, 0),],
@@ -12,6 +13,12 @@ COLORS = {
     "3": [(210, 0, 0), (105, 0, 0)],
     "4": [(0, 210, 0), (0, 105, 0)],
     "5": [(0, 0, 210), (0, 0, 105)]
+}
+REQUESTS = {
+    "buy_card": "0",
+    "take_two_gems": "1",
+    "take_three_gems": "2",
+    "finish_turn": "3",
 }
 
 def write_formated_digit(surface: 'pg.Surface', digit: str,
@@ -130,25 +137,41 @@ class GBank(pg.Surface):
 
 
 class GButton(pg.Surface):
-    def __init__(self, name: str):
-        super(GButton, self).__init__((200, 100))
-        self.name = pg.font.Font(None, 36).render(name, 1, WHITE)
+    def __init__(self, name: str, coords: tuple, size: tuple, button_id: int, font_size: int, disable: bool):
+        super(GButton, self).__init__(size)
+        self.font_size = font_size
+        self.coords = coords
+        self.size = size
+        self.button_id = button_id
+        self.name = pg.font.Font(None, self.font_size).render(name, 1, WHITE)
+        self.disable = disable
 
     def update(self):
-        self.fill(BLACK)
-        self.blit(self.name, (10, 32))
+        if self.disable:
+            self.fill(GREY)
+        else:
+            self.fill(BLACK)
+        self.blit(self.name, (10, (self.size[1] - self.font_size) // 2))
+
+    def check_click(self, pos):
+        if self.disable == False:
+            if self.coords[0] < pos[0] < self.coords[0] + self.size[0]:
+                if self.coords[1] < pos[1] < self.coords[1] + self.size[1]:
+                    return self.button_id
+        return False
 
 
 class State:
-    def __init__(self, player_id: str, state: dict):
+    def __init__(self, player_id: str, state: str):
         self.id = [player_id, str((int(player_id) + 1) % 2)]    # [player_id, opponent_id]
         self.update(state)
 
-    def update(self, upd_state: dict):
-        self.cur_player = upd_state['current_player']
-        self.players = upd_state['players']
-        self.cardfield = upd_state['cardfield']
-        self.bank = upd_state['bank']
+    def update(self, upd_state: str):
+        state = json.loads(upd_state)
+        self.cur_player = state['current_player']
+        self.players = state['players']
+        self.cardfield = state['cardfield']
+        self.bank = state['bank']
 
 
 class GGame:
@@ -158,17 +181,17 @@ class GGame:
         pg.time.delay(100)
         self.size = (1280, 800)
         self.cardfield_coords = [(100, 120), (700, 550)]
-        self.bank_coords = [(1130, 150), (70, 350)]
+        self.bank_coords = [(1130, 225), (70, 350)]
         self.screen = pg.display.set_mode(self.size)
         self.done = False
         self.p_socket = player_socket
         self.state_init(player_id, init_state)
 
     def state_init(self, player_id: str, init_state: str):
-        state = json.loads(init_state)
-        self.state = State(player_id, state)
+        self.state = State(player_id, init_state)
         self.players_init()
         self.field_init()
+        self.buttons_init()
 
     def players_init(self):
         player = self.state.players[self.state.id[0]]
@@ -181,12 +204,12 @@ class GGame:
                                     self.state.cardfield['open_cards'],
                                     self.state.cardfield['decks_card_count'])
         self.bank = GBank(self.bank_coords[1], self.state.bank['gems'])
-        self.take_two_gems = GButton("Take 2 gems")
-        self.take_three_gems = GButton("Take 3 gems")
 
-    def update_state(self, state: str):
-        upd_state = json.loads(state)
-        self.state.update(upd_state)
+    def buttons_init(self):
+        self.buttons = {}
+        self.buttons['take_two_gems'] = GButton("Take 2 gems", (850, 200), (200, 100), 1, 36, False)
+        self.buttons['take_three_gems'] = GButton("Take 3 gems", (850, 350), (200, 100), 2, 36, False)
+        self.buttons['complete_move'] = GButton("Complete move", (850, 500), (200, 100), 3, 36, True)
 
     def update(self):
         player = self.state.players[self.state.id[0]]
@@ -196,8 +219,8 @@ class GGame:
         self.cardfield.update(self.state.cardfield['open_cards'],
                               self.state.cardfield['decks_card_count'])
         self.bank.update(self.state.bank['gems'])
-        self.take_two_gems.update()
-        self.take_three_gems.update()
+        for button in self.buttons.values():
+            button.update()
 
     def draw(self):
         self.update()
@@ -206,16 +229,15 @@ class GGame:
         self.screen.blit(self.opponent, (50, 0))
         self.screen.blit(self.cardfield, self.cardfield_coords[0])
         self.screen.blit(self.bank, self.bank_coords[0])
-        self.screen.blit(self.take_two_gems, (850, 250))
-        self.screen.blit(self.take_three_gems, (850, 400))
+        for button in self.buttons.values():
+            self.screen.blit(button, button.coords)
         pg.display.update()
 
     def check_button_click(self, pos):
-        if pos[0] > 850 and pos[0] < 1050:
-            if pos[1] > 250 and pos[1] < 350:
-                return 1
-            elif pos[1] > 400 and pos[1] < 500:
-                return 2
+        for button in self.buttons.values():
+            clicked_button = button.check_click(pos)
+            if clicked_button:
+                return clicked_button
         return False
 
     def check_card_click(self, pos):
@@ -236,6 +258,17 @@ class GGame:
         if (x_r ** 2 + y_r ** 2) < rad ** 2:
             return num
         return False
+
+    def request_buy_card(self, pos):
+        send_message(self.client_socket, '{}{}{}'.format(REQUESTS['buy_card'], *pos))
+        reply = recieve_message(self.client_socket)
+        if reply != 'False':
+            self.state.update(reply)
+            return True
+        return False
+
+    def request_take_gems(self):
+        pass
 
     def main(self):
         while not self.done:
@@ -271,7 +304,11 @@ if __name__ == '__main__':
     client_socket.connect((IP, PORT))
     client_socket.setblocking(False)
 
-    username = input("Username: ").encode('utf-8')
+    while True:
+        username = input("Username: ").encode('utf-8')
+        if len(username) < 16:
+            break
+        print("Username is too long! Try less than 16 symbols, please.")
     client_socket.send(username)
 
     while True:
