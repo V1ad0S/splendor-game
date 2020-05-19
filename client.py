@@ -111,6 +111,7 @@ class GPlayer(pg.Surface):
         self.info = GGemsInfo(assets, bonus)
 
     def update(self, assets: list, bonus: list, points: int):
+        self.fill(GREY)
         score = pg.font.Font(None, 40).render(f'Score: {points}', 1, WHITE)
         self.info.update(assets, bonus)
         self.blit(self.name, (10, 10))
@@ -208,8 +209,6 @@ class GGame:
     def buttons_init(self):
         self.buttons = {}
         self.buttons['take_two_gems'] = GButton("Take 2 gems", (850, 200), (200, 100), 1, 36, False)
-        self.buttons['take_three_gems'] = GButton("Take 3 gems", (850, 350), (200, 100), 2, 36, False)
-        self.buttons['complete_move'] = GButton("Complete move", (850, 500), (200, 100), 3, 36, True)
 
     def update(self):
         player = self.state.players[self.state.id[0]]
@@ -245,7 +244,7 @@ class GGame:
         if pos[0] < x or pos[0] > (x + w - 165) or pos[1] < y or pos[1] > (y + h):
             return False
         click_pos = (pos[0] - x, pos[1] - y)
-        card_coord = (click_pos[0] // 135, click_pos[1] // 185)
+        card_coord = (click_pos[1] // 185, click_pos[0] // 135)
         return card_coord
 
     def check_bank_click(self, pos):
@@ -309,7 +308,7 @@ class GGame:
                         card = self.check_card_click(event.pos)
                         gem = self.check_bank_click(event.pos)
                         button = self.check_button_click(event.pos)
-                        if gem:
+                        if not gem is False:
                             clicked_gems.append(gem)
                             if len(clicked_gems) == 3 and len(set(clicked_gems)) == 3:
                                 print(self.request_take_three_gems(clicked_gems))
