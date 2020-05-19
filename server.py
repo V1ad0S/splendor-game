@@ -60,7 +60,7 @@ while True:
         init_state = game.encode_state()
         for i in range(len(players_sockets)):
             send_message(players_sockets[i], str(i) + init_state)
-            time.sleep(2)
+            time.sleep(1)
         break
 
 COLORS = {
@@ -86,10 +86,11 @@ while True:
         res = game.take_three_gems(colors)
     if req[0] == '3':
         cur_p_id = (cur_p_id + 1) % 2
+        game.end_turn_checks()
         for player in players_sockets:
             state = game.encode_state()
             send_message(player, state)
-            continue
+        continue
     if res:
         send_message(players_sockets[cur_p_id], game.encode_state())
     else:

@@ -255,6 +255,7 @@ class Game:
     def encode_state(self):
         encode_state = json.dumps(
             {
+                "winner": self.game_over * str(self.cur_p_ind),
                 "current_player": str(self.cur_p_ind),
                 "players": {
                     "0": {

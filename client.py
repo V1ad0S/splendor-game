@@ -6,6 +6,7 @@ import sys
 HEADER_LENGTH = 5
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
+GREEN = (0, 128, 0)
 BLACK = (0, 0, 0)
 COLORS = {
     "1": [(128, 64, 0), (64, 32, 0),],
@@ -138,24 +139,24 @@ class GBank(pg.Surface):
 
 
 class GButton(pg.Surface):
-    def __init__(self, name: str, coords: tuple, size: tuple, button_id: int, font_size: int, disable: bool):
+    def __init__(self, name: str, coords: tuple, size: tuple, button_id: int, font_size: int):
         super(GButton, self).__init__(size)
         self.font_size = font_size
         self.coords = coords
         self.size = size
         self.button_id = button_id
         self.name = pg.font.Font(None, self.font_size).render(name, 1, WHITE)
-        self.disable = disable
 
-    def update(self):
+    def update(self, disable: bool):
+        self.disable = disable
         if self.disable:
             self.fill(GREY)
         else:
-            self.fill(BLACK)
+            self.fill(GREEN)
         self.blit(self.name, (10, (self.size[1] - self.font_size) // 2))
 
     def check_click(self, pos):
-        if self.disable == False:
+        if self.disable is False:
             if self.coords[0] < pos[0] < self.coords[0] + self.size[0]:
                 if self.coords[1] < pos[1] < self.coords[1] + self.size[1]:
                     return self.button_id
@@ -169,6 +170,7 @@ class State:
 
     def update(self, upd_state: str):
         state = json.loads(upd_state)
+        self.winner = state['winner']
         self.cur_player = state['current_player']
         self.players = state['players']
         self.cardfield = state['cardfield']
@@ -208,18 +210,20 @@ class GGame:
 
     def buttons_init(self):
         self.buttons = {}
-        self.buttons['take_two_gems'] = GButton("Take 2 gems", (850, 200), (200, 100), 1, 36, False)
+        self.buttons['complete_move'] = GButton("Complete move", (850, 500), (200, 100), 1, 36)
 
     def update(self):
         player = self.state.players[self.state.id[0]]
         oppon = self.state.players[self.state.id[1]]
+        winner = self.state.winner
+        if winner:
+            self.gameover(winner)
         self.player.update(player['assets'], player['bonus'], player['points'])
         self.opponent.update(oppon['assets'], oppon['bonus'], oppon['points'])
         self.cardfield.update(self.state.cardfield['open_cards'],
                               self.state.cardfield['decks_card_count'])
         self.bank.update(self.state.bank['gems'])
-        for button in self.buttons.values():
-            button.update()
+        self.buttons['complete_move'].update(self.state.id[0] != self.state.cur_player)
 
     def draw(self):
         self.update()
@@ -258,8 +262,7 @@ class GGame:
             return num
         return False
 
-    def request_buy_card(self, pos):
-        send_message(self.p_socket, '{}{}{}'.format(REQUESTS['buy_card'], *pos))
+    def get_response(self):
         while True:
             try:
                 reply = recieve_message(self.p_socket)
@@ -270,36 +273,38 @@ class GGame:
             self.state.update(reply)
             return True
         return False
+
+    def request_buy_card(self, pos):
+        send_message(self.p_socket, '{}{}{}'.format(REQUESTS['buy_card'], *pos))
+        return self.get_response()
 
     def request_take_three_gems(self, gems: list):
         send_message(self.p_socket, '{}{}{}{}'.format(REQUESTS['take_three_gems'], *gems))
-        while True:
-            try:
-                reply = recieve_message(self.p_socket)
-                break
-            except IOError:
-                continue
-        if reply != 'False':
-            self.state.update(reply)
-            return True
-        return False
+        return self.get_response()
 
     def request_take_two_gems(self, gem_id: int):
         send_message(self.p_socket, '{}{}'.format(REQUESTS['take_two_gems'], gem_id))
-        while True:
-            try:
-                reply = recieve_message(self.p_socket)
-                break
-            except IOError:
-                continue
-        if reply != 'False':
-            self.state.update(reply)
-            return True
-        return False
+        return self.get_response()
+
+    def request_finish_turn(self):
+        send_message(self.p_socket, REQUESTS['finish_turn'])
+        return self.get_response()
+
+    def gameover(self, winner: str):
+        self.done = True
+        result = (winner == self.state.id[1]) * 'You won!' + (winner == self.state.id[0]) * 'You lose!'
+        print(result)
 
     def main(self):
         clicked_gems = []
         while not self.done:
+            if self.state.cur_player != self.state.id[0]:
+                try:
+                    resp = recieve_message(self.p_socket)
+                    if resp != 'False':
+                        self.state.update(resp)
+                except IOError:
+                    pass
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.done = True
@@ -320,6 +325,9 @@ class GGame:
                                 clicked_gems.clear()
                         if card:
                             print(self.request_buy_card(card))
+                            clicked_gems.clear()
+                        if button == 1:
+                            print(self.request_finish_turn())
                             clicked_gems.clear()
             self.draw()
 
