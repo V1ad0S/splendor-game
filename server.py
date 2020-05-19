@@ -56,7 +56,6 @@ while True:
         game.lay_out_all()
         init_state = game.encode_state()
         for i in range(len(players_sockets)):
-            send_message(players_sockets[i], str(i))
-            send_message(players_sockets[i], init_state)
+            send_message(players_sockets[i], str(i) + init_state)
             time.sleep(2)
         print('Game started!')

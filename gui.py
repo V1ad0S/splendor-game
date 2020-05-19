@@ -276,13 +276,13 @@ if __name__ == '__main__':
 
     while True:
         try:
-            player_id = recieve_message(client_socket)
-            if not player_id:
+            mes = recieve_message(client_socket)
+            if not mes:
                 print('Connection closed by server')
                 sys.exit()
-            init_state = recieve_message(client_socket)
             break
         except IOError:
             continue
-    GGame(player_id, client_socket, init_state).main()
+    print('Game started')
+    GGame(mes[0], client_socket, mes[1:]).main()
     client_socket.close()
