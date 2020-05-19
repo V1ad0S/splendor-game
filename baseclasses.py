@@ -154,7 +154,10 @@ class CardField:
         for row in self.open_cards:
             row_cards = []
             for card in row:
-                row_cards.append(card.id_string)
+                if card:
+                    row_cards.append(card.id_string)
+                    continue
+                row_cards.append('')
             result.append(row_cards)
         return result
 

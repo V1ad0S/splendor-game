@@ -1,7 +1,7 @@
 import json
 import pygame as pg
 import socket
-import sys
+import sys, time
 
 HEADER_LENGTH = 5
 WHITE = (255, 255, 255)
@@ -61,6 +61,9 @@ class GCard(pg.Surface):
         self.update(id)
 
     def update(self, id: str):
+        if not id:
+            self.fill(GREY)
+            return
         color = COLORS[id[0]][1]
         price_list = list(filter(lambda x: x[0] != '0', zip(id[2:], COLORS.values())))
         points = id[1]
@@ -215,9 +218,8 @@ class GGame:
     def update(self):
         player = self.state.players[self.state.id[0]]
         oppon = self.state.players[self.state.id[1]]
-        winner = self.state.winner
-        if winner:
-            self.gameover(winner)
+        if self.state.winner:
+            self.done = True
         self.player.update(player['assets'], player['bonus'], player['points'])
         self.opponent.update(oppon['assets'], oppon['bonus'], oppon['points'])
         self.cardfield.update(self.state.cardfield['open_cards'],
@@ -290,10 +292,13 @@ class GGame:
         send_message(self.p_socket, REQUESTS['finish_turn'])
         return self.get_response()
 
-    def gameover(self, winner: str):
-        self.done = True
-        result = (winner == self.state.id[1]) * 'You won!' + (winner == self.state.id[0]) * 'You lose!'
-        print(result)
+    def gameover(self):
+        is_win = self.state.winner == self.state.id[1]
+        result = is_win * 'You won!' + (not is_win) * 'You lose!'
+        res_surf = pg.font.Font(None, 150).render(result, 1, (200, 50, 50))
+        self.screen.blit(res_surf, (400, 300))
+        pg.display.update()
+        time.sleep(5)
 
     def main(self):
         clicked_gems = []
@@ -330,6 +335,7 @@ class GGame:
                             print(self.request_finish_turn())
                             clicked_gems.clear()
             self.draw()
+        self.gameover()
 
 
 def send_message(client_socket, message: str):
