@@ -260,26 +260,68 @@ class GGame:
         return False
 
     def request_buy_card(self, pos):
-        send_message(self.client_socket, '{}{}{}'.format(REQUESTS['buy_card'], *pos))
-        reply = recieve_message(self.client_socket)
+        send_message(self.p_socket, '{}{}{}'.format(REQUESTS['buy_card'], *pos))
+        while True:
+            try:
+                reply = recieve_message(self.p_socket)
+                break
+            except IOError:
+                continue
         if reply != 'False':
             self.state.update(reply)
             return True
         return False
 
-    def request_take_gems(self):
-        pass
+    def request_take_three_gems(self, gems: list):
+        send_message(self.p_socket, '{}{}{}{}'.format(REQUESTS['take_three_gems'], *gems))
+        while True:
+            try:
+                reply = recieve_message(self.p_socket)
+                break
+            except IOError:
+                continue
+        if reply != 'False':
+            self.state.update(reply)
+            return True
+        return False
+
+    def request_take_two_gems(self, gem_id: int):
+        send_message(self.p_socket, '{}{}'.format(REQUESTS['take_two_gems'], gem_id))
+        while True:
+            try:
+                reply = recieve_message(self.p_socket)
+                break
+            except IOError:
+                continue
+        if reply != 'False':
+            self.state.update(reply)
+            return True
+        return False
 
     def main(self):
+        clicked_gems = []
         while not self.done:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.done = True
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if self.state.cur_player == self.state.id[0] and event.button == 1:
-                        print(self.check_card_click(event.pos))
-                        print(self.check_bank_click(event.pos))
-                        print(self.check_button_click(event.pos))
+                        card = self.check_card_click(event.pos)
+                        gem = self.check_bank_click(event.pos)
+                        button = self.check_button_click(event.pos)
+                        if gem:
+                            if len(clicked_gems) == 2 and len(set(clicked_gems + [gem])) == 3:
+                                print(self.request_take_three_gems(clicked_gems + [gem]))
+                                clicked_gems.clear()
+                            if len(clicked_gems) == 1 and clicked_gems[0] == gem:
+                                print(self.request_take_two_gems(gem))
+                                clicked_gems.clear()
+                            if len(clicked_gems) >= 2:
+                                clicked_gems.clear()
+                            clicked_gems.append(gem)
+                        if card:
+                            print(self.request_buy_card(card))
+                            clicked_gems.clear()
             self.draw()
 
 
@@ -295,6 +337,7 @@ def recieve_message(client_socket):
     message_length = int(message_header.decode('utf-8').strip())
     message = client_socket.recv(message_length).decode('utf-8')
     return message
+
 
 if __name__ == '__main__':
     IP = 'localhost'

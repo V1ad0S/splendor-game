@@ -10,7 +10,7 @@ SERVER_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 SERVER_SOCKET.bind((IP, PORT))
 SERVER_SOCKET.listen()
 
-players_names_sockets = []
+players_sockets = []
 players_names = []
 
 
@@ -18,14 +18,14 @@ print(f'Listening for connections on {IP}:{PORT}...')
 
 
 def new_connection(client_socket, client_address):
-    if len(players_names_sockets) >= 2:
+    if len(players_sockets) >= 2:
         return False
     # player should send his name
     username = client_socket.recv(1024).decode('utf-8')
     # player disconnected before he sent his name
     if not username:
         return False
-    players_names_sockets.append(client_socket)
+    players_sockets.append(client_socket)
     players_names.append(username)
     print('Accepted new connection from {}:{}, username: {}'.format(*client_address, username))
     return True
@@ -36,10 +36,13 @@ def send_message(client_socket, message: str):
     client_socket.send(message_header + message)
 
 def recieve_message(client_socket):
-    message_header = client_socket.recv(HEADER_LENGTH)
-    message_length = int(message_header.decode('utf-8').strip())
-    message = client_socket.recv(message_length).decode('utf-8')
-    return message
+    try:
+        message_header = client_socket.recv(HEADER_LENGTH)
+        message_length = int(message_header.decode('utf-8').strip())
+        message = client_socket.recv(message_length).decode('utf-8')
+        return message
+    except IOError:
+        return False
 
 
 while True:
@@ -51,11 +54,45 @@ while True:
         SERVER_SOCKET.close()
         sys.exit()
 
-    if len(players_names_sockets) == 2:
+    if len(players_sockets) == 2:
         game = Game(players_names)
         game.lay_out_all()
         init_state = game.encode_state()
-        for i in range(len(players_names_sockets)):
-            send_message(players_names_sockets[i], str(i) + init_state)
+        for i in range(len(players_sockets)):
+            send_message(players_sockets[i], str(i) + init_state)
             time.sleep(2)
-        print('Game started!')
+        break
+
+COLORS = {
+    '0': 'brown',
+    '1': 'white',
+    '2': 'red',
+    '3': 'green',
+    '4': 'blue',
+}
+
+cur_p_id = 0
+while True:
+    req = recieve_message(players_sockets[cur_p_id])
+    if not req:
+        continue
+    if req[0] == '0':
+        i, j = list(req[1:])
+        res = game.buy_board_card((int(i), int(j)))
+    if req[0] == '1':
+        res = game.take_two_gems(COLORS[req[1]])
+    if req[0] == '2':
+        colors = [COLORS[i] for i in req[1:]]
+        res = game.take_three_gems(colors)
+    if req[0] == '3':
+        cur_p_id = (cur_p_id + 1) % 2
+        for player in players_sockets:
+            state = game.encode_state()
+            send_message(player, state)
+            continue
+    if res:
+        send_message(players_sockets[cur_p_id], game.encode_state())
+    else:
+        send_message(players_sockets[cur_p_id], 'False')
+
+
