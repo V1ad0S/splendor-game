@@ -149,6 +149,16 @@ class CardField:
     def get_decks_card_count(self):
         return [len(d.deck) for d in self.decks]
 
+    def get_opencards_ids(self):
+        result = []
+        for row in self.open_cards:
+            row_cards = []
+            for card in row:
+                row_cards.append(card.id_string)
+            result.append(row_cards)
+        return result
+
+
     def lay_out(self):
         for (deck, cards_row) in zip(self.decks, self.open_cards):
             for _ in range(self.cards_in_row):
@@ -231,7 +241,8 @@ class Game:
         return False
 
     def buy_board_card(self, pos: tuple) -> bool:
-        if card := self.cardfield.get_card(pos):
+        card = self.cardfield.get_card(pos)
+        if card:
             if card.can_be_bought(*self.players[self.cur_p_ind].get_pay_info()):
                 return_gems = self.players[self.cur_p_ind].add_card(card)
                 self.cardfield.pop_card(pos)
@@ -261,7 +272,7 @@ class Game:
                     }
                 },
                 "cardfield": {
-                    "open_cards": self.cardfield.open_cards,
+                    "open_cards": self.cardfield.get_opencards_ids(),
                     "decks_card_count": self.cardfield.get_decks_card_count(),
                 },
                 "bank": {

@@ -3,7 +3,7 @@ import pygame as pg
 import socket
 import sys
 
-# добавить в GCard.update обработку None
+HEADER_LENGTH = 5
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 COLORS = {
@@ -152,7 +152,7 @@ class State:
 
 
 class GGame:
-    def __init__(self, player_id: str, player_socket):
+    def __init__(self, player_id: str, player_socket, init_state: str):
         pg.init()
         pg.display.set_caption("Splendor Game")
         pg.time.delay(100)
@@ -161,13 +161,12 @@ class GGame:
         self.bank_coords = [(1130, 150), (70, 350)]
         self.screen = pg.display.set_mode(self.size)
         self.done = False
-        self.state_init(player_id)
         self.p_socket = player_socket
+        self.state_init(player_id, init_state)
 
-    def state_init(self, player_id: str):
-        with open('state.json', 'r') as state_file:
-            state = json.load(state_file)
-            self.state = State(player_id, state)
+    def state_init(self, player_id: str, init_state: str):
+        state = json.loads(init_state)
+        self.state = State(player_id, state)
         self.players_init()
         self.field_init()
 
@@ -185,10 +184,9 @@ class GGame:
         self.take_two_gems = GButton("Take 2 gems")
         self.take_three_gems = GButton("Take 3 gems")
 
-    def update_state(self):
-        with open('state.json', 'r') as state_file:
-            state = json.load(state_file)
-            self.state.update(state)
+    def update_state(self, state: str):
+        upd_state = json.loads(state)
+        self.state.update(upd_state)
 
     def update(self):
         player = self.state.players[self.state.id[0]]
@@ -251,6 +249,20 @@ class GGame:
                         print(self.check_button_click(event.pos))
             self.draw()
 
+
+def send_message(client_socket, message: str):
+    message = message.encode('utf-8')
+    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+    client_socket.send(message_header + message)
+
+def recieve_message(client_socket):
+    message_header = client_socket.recv(HEADER_LENGTH)
+    if not message_header:
+        return False
+    message_length = int(message_header.decode('utf-8').strip())
+    message = client_socket.recv(message_length).decode('utf-8')
+    return message
+
 if __name__ == '__main__':
     IP = 'localhost'
     PORT = 8000
@@ -264,12 +276,13 @@ if __name__ == '__main__':
 
     while True:
         try:
-            d = client_socket.recv(2048)
-            if not d:
+            player_id = recieve_message(client_socket)
+            if not player_id:
                 print('Connection closed by server')
                 sys.exit()
-            player_id = d.decode('utf-8')
+            init_state = recieve_message(client_socket)
             break
         except IOError:
             continue
-    GGame(player_id, client_socket).main()
+    GGame(player_id, client_socket, init_state).main()
+    client_socket.close()
