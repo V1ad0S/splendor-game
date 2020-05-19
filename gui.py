@@ -310,15 +310,15 @@ class GGame:
                         gem = self.check_bank_click(event.pos)
                         button = self.check_button_click(event.pos)
                         if gem:
-                            if len(clicked_gems) == 2 and len(set(clicked_gems + [gem])) == 3:
-                                print(self.request_take_three_gems(clicked_gems + [gem]))
+                            clicked_gems.append(gem)
+                            if len(clicked_gems) == 3 and len(set(clicked_gems)) == 3:
+                                print(self.request_take_three_gems(clicked_gems))
                                 clicked_gems.clear()
-                            if len(clicked_gems) == 1 and clicked_gems[0] == gem:
+                            if len(clicked_gems) == 2 and len(set(clicked_gems)) == 1:
                                 print(self.request_take_two_gems(gem))
                                 clicked_gems.clear()
-                            if len(clicked_gems) >= 2:
+                            if len(clicked_gems) >= 3:
                                 clicked_gems.clear()
-                            clicked_gems.append(gem)
                         if card:
                             print(self.request_buy_card(card))
                             clicked_gems.clear()

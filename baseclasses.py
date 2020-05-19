@@ -158,7 +158,6 @@ class CardField:
             result.append(row_cards)
         return result
 
-
     def lay_out(self):
         for (deck, cards_row) in zip(self.decks, self.open_cards):
             for _ in range(self.cards_in_row):
