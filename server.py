@@ -1,8 +1,8 @@
 import sys, socket, time
 from baseclasses import Game
 
-IP = 'localhost'
-PORT = 8000
+IP = str(sys.argv[1])
+PORT = int(sys.argv[2])
 HEADER_LENGTH = 5
 
 SERVER_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,6 +38,12 @@ def send_message(client_socket, message: str):
 def recieve_message(client_socket):
     try:
         message_header = client_socket.recv(HEADER_LENGTH)
+        if not message_header:
+            print('connection lost')
+            client_socket.close()
+            index = players_sockets.index(client_socket)
+            del players_sockets[index]
+            return False
         message_length = int(message_header.decode('utf-8').strip())
         message = client_socket.recv(message_length).decode('utf-8')
         return message
@@ -74,15 +80,18 @@ COLORS = {
 cur_p_id = 0
 block = False
 while True:
+    if len(players_sockets) < 2:
+        print('shutdown')
+        break
     req = recieve_message(players_sockets[cur_p_id])
     if not req:
         continue
-    if req[0] == '0':
+    if req[0] == '0' and not block:
         i, j = list(req[1:])
         res = game.buy_board_card((int(i), int(j)))
-    if req[0] == '1':
+    if req[0] == '1' and not block:
         res = game.take_two_gems(COLORS[req[1]])
-    if req[0] == '2':
+    if req[0] == '2' and not block:
         colors = [COLORS[i] for i in req[1:]]
         res = game.take_three_gems(colors)
     if req[0] == '3':
@@ -93,7 +102,7 @@ while True:
             state = game.encode_state()
             send_message(player, state)
         continue
-    if res:
+    if res and not block:
         send_message(players_sockets[cur_p_id], game.encode_state())
         block = True
     else:

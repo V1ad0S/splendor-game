@@ -4,6 +4,7 @@ import socket
 import sys, time
 
 HEADER_LENGTH = 5
+BACKGROUND = (200, 200, 200)
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
 GREEN = (0, 128, 0)
@@ -45,6 +46,7 @@ class GGemsInfo(pg.Surface):
         self.update(assets, bonus)
 
     def update(self, assets: list, bonus: list):
+        self.fill(GREY)
         for gem, asset, bon, color in zip(self.info, assets, bonus, COLORS.values()):
             gem['surf_1'].fill(color[1])
             gem['surf_2'].fill(color[0])
@@ -91,6 +93,7 @@ class GCardField(pg.Surface):
         self.update(open_cards, decks_card_count)
 
     def update(self, update_cards: list, decks_card_count: list):
+        self.fill(BACKGROUND)
         j = 0
         for (row_1, row_2) in zip(self.open_cards, update_cards):
             i = 0
@@ -135,8 +138,10 @@ class GBank(pg.Surface):
         self.update(gems)
 
     def update(self, gems: list):
+        self.fill(BACKGROUND)
         rad = round(self.get_width() / 2)
         for gem, count, color in zip(self.gems, gems, COLORS.values()):
+            gem['surf'].fill(BACKGROUND)
             pg.draw.circle(gem['surf'], color[0], (rad, rad), rad)
             write_formated_digit(gem['surf'], count, (16, 4))
             self.blit(gem['surf'], (0, gem['y_coord']))
@@ -232,7 +237,7 @@ class GGame:
 
     def draw(self):
         self.update()
-        self.screen.fill((200, 200, 200))
+        self.screen.fill(BACKGROUND)
         self.screen.blit(self.player, (50, 700))
         self.screen.blit(self.opponent, (50, 0))
         self.screen.blit(self.cardfield, self.cardfield_coords[0])
@@ -298,8 +303,8 @@ class GGame:
     def gameover(self):
         is_win = self.state.winner == self.state.id[1]
         result = is_win * 'You won!' + (not is_win) * 'You lose!'
-        res_surf = pg.font.Font(None, 150).render(result, 1, (200, 50, 50))
-        self.screen.blit(res_surf, (400, 300))
+        res_surf = pg.font.Font(None, 120).render(result, 1, (200, 50, 50))
+        self.screen.blit(res_surf, (820, 120))
         pg.display.update()
         time.sleep(3)
 
@@ -357,6 +362,9 @@ def send_message(client_socket, message: str):
 def recieve_message(client_socket):
     message_header = client_socket.recv(HEADER_LENGTH)
     if not message_header:
+        print('Connection lost!')
+        client_socket.close()
+        sys.exit()
         return False
     message_length = int(message_header.decode('utf-8').strip())
     message = client_socket.recv(message_length).decode('utf-8')
@@ -364,8 +372,8 @@ def recieve_message(client_socket):
 
 
 if __name__ == '__main__':
-    IP = 'localhost'
-    PORT = 8000
+    IP = str(sys.argv[1])
+    PORT = int(sys.argv[2])
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((IP, PORT))
