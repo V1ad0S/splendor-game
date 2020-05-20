@@ -7,6 +7,7 @@ HEADER_LENGTH = 5
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
 GREEN = (0, 128, 0)
+YELLOW = (180, 180, 0)
 BLACK = (0, 0, 0)
 COLORS = {
     "1": [(128, 64, 0), (64, 32, 0),],
@@ -150,25 +151,26 @@ class GButton(pg.Surface):
         self.button_id = button_id
         self.name = pg.font.Font(None, self.font_size).render(name, 1, WHITE)
 
-    def update(self, disable: bool):
-        self.disable = disable
-        if self.disable:
+    def update(self, condition: int):
+        if condition == 0:
             self.fill(GREY)
+        elif condition == 1:
+            self.fill(YELLOW)
         else:
             self.fill(GREEN)
         self.blit(self.name, (10, (self.size[1] - self.font_size) // 2))
 
     def check_click(self, pos):
-        if self.disable is False:
-            if self.coords[0] < pos[0] < self.coords[0] + self.size[0]:
-                if self.coords[1] < pos[1] < self.coords[1] + self.size[1]:
-                    return self.button_id
+        if self.coords[0] < pos[0] < self.coords[0] + self.size[0]:
+            if self.coords[1] < pos[1] < self.coords[1] + self.size[1]:
+                return self.button_id
         return False
 
 
 class State:
     def __init__(self, player_id: str, state: str):
         self.id = [player_id, str((int(player_id) + 1) % 2)]    # [player_id, opponent_id]
+        self.block = False
         self.update(state)
 
     def update(self, upd_state: str):
@@ -225,7 +227,8 @@ class GGame:
         self.cardfield.update(self.state.cardfield['open_cards'],
                               self.state.cardfield['decks_card_count'])
         self.bank.update(self.state.bank['gems'])
-        self.buttons['complete_move'].update(self.state.id[0] != self.state.cur_player)
+        btn_cond = int(self.state.id[0] == self.state.cur_player) + int(self.state.block)
+        self.buttons['complete_move'].update(btn_cond)
 
     def draw(self):
         self.update()
@@ -298,7 +301,34 @@ class GGame:
         res_surf = pg.font.Font(None, 150).render(result, 1, (200, 50, 50))
         self.screen.blit(res_surf, (400, 300))
         pg.display.update()
-        time.sleep(5)
+        time.sleep(3)
+
+    def mouse_event_handler(self, event, clicked_gems: list):
+        if self.state.cur_player != self.state.id[0] or event.button != 1:
+            return
+        card = self.check_card_click(event.pos)
+        gem = self.check_bank_click(event.pos)
+        button = self.check_button_click(event.pos)
+        if not gem is False:
+            clicked_gems.append(gem)
+            if len(clicked_gems) == 3 and len(set(clicked_gems)) == 3:
+                if self.request_take_three_gems(clicked_gems):
+                    self.state.block = True
+                clicked_gems.clear()
+            if len(clicked_gems) == 2 and len(set(clicked_gems)) == 1:
+                if self.request_take_two_gems(gem):
+                    self.state.block = True
+                clicked_gems.clear()
+            if len(clicked_gems) >= 3:
+                clicked_gems.clear()
+        if card:
+            if self.request_buy_card(card):
+                self.state.block = True
+            clicked_gems.clear()
+        if button == 1:
+            self.state.block = False
+            self.request_finish_turn()
+            clicked_gems.clear()
 
     def main(self):
         clicked_gems = []
@@ -314,26 +344,7 @@ class GGame:
                 if event.type == pg.QUIT:
                     self.done = True
                 if event.type == pg.MOUSEBUTTONDOWN:
-                    if self.state.cur_player == self.state.id[0] and event.button == 1:
-                        card = self.check_card_click(event.pos)
-                        gem = self.check_bank_click(event.pos)
-                        button = self.check_button_click(event.pos)
-                        if not gem is False:
-                            clicked_gems.append(gem)
-                            if len(clicked_gems) == 3 and len(set(clicked_gems)) == 3:
-                                print(self.request_take_three_gems(clicked_gems))
-                                clicked_gems.clear()
-                            if len(clicked_gems) == 2 and len(set(clicked_gems)) == 1:
-                                print(self.request_take_two_gems(gem))
-                                clicked_gems.clear()
-                            if len(clicked_gems) >= 3:
-                                clicked_gems.clear()
-                        if card:
-                            print(self.request_buy_card(card))
-                            clicked_gems.clear()
-                        if button == 1:
-                            print(self.request_finish_turn())
-                            clicked_gems.clear()
+                    self.mouse_event_handler(event, clicked_gems)
             self.draw()
         self.gameover()
 

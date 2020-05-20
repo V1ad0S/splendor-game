@@ -72,6 +72,7 @@ COLORS = {
 }
 
 cur_p_id = 0
+block = False
 while True:
     req = recieve_message(players_sockets[cur_p_id])
     if not req:
@@ -85,6 +86,7 @@ while True:
         colors = [COLORS[i] for i in req[1:]]
         res = game.take_three_gems(colors)
     if req[0] == '3':
+        block = False
         cur_p_id = (cur_p_id + 1) % 2
         game.end_turn_checks()
         for player in players_sockets:
@@ -93,6 +95,7 @@ while True:
         continue
     if res:
         send_message(players_sockets[cur_p_id], game.encode_state())
+        block = True
     else:
         send_message(players_sockets[cur_p_id], 'False')
 
