@@ -4,18 +4,18 @@ import socket
 import sys, time
 
 HEADER_LENGTH = 5
-BACKGROUND = (200, 200, 200)
+BACKGROUND = (140, 122, 230)
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
 GREEN = (0, 128, 0)
 YELLOW = (180, 180, 0)
 BLACK = (0, 0, 0)
 COLORS = {
-    "1": [(128, 64, 0), (64, 32, 0),],
-    "2": [(240, 240, 240), (210, 210, 210)],
-    "3": [(210, 0, 0), (105, 0, 0)],
-    "4": [(0, 210, 0), (0, 105, 0)],
-    "5": [(0, 0, 210), (0, 0, 105)]
+    "1": [(53, 59, 72), (47, 54, 64),],
+    "2": [(245, 246, 250), (220, 221, 225)],
+    "3": [(232, 65, 24), (194, 54, 22)],
+    "4": [(76, 209, 55), (68, 189, 50)],
+    "5": [(72, 126, 176), (64, 115, 158)]
 }
 REQUESTS = {
     "buy_card": "0",
@@ -114,7 +114,7 @@ class GCardField(pg.Surface):
 
 class GPlayer(pg.Surface):
     def __init__(self, name: str, assets: list, bonus: list):
-        super(GPlayer, self).__init__((1150, 100))
+        super(GPlayer, self).__init__((850, 100))
         self.name = pg.font.Font(None, 36).render(name, 1, WHITE)
         self.info = GGemsInfo(assets, bonus)
 
@@ -163,7 +163,7 @@ class GButton(pg.Surface):
             self.fill(YELLOW)
         else:
             self.fill(GREEN)
-        self.blit(self.name, (10, (self.size[1] - self.font_size) // 2))
+        self.blit(self.name, (30, 25))
 
     def check_click(self, pos):
         if self.coords[0] < pos[0] < self.coords[0] + self.size[0]:
@@ -192,9 +192,9 @@ class GGame:
         pg.init()
         pg.display.set_caption("Splendor Game")
         pg.time.delay(100)
-        self.size = (1280, 800)
-        self.cardfield_coords = [(100, 120), (700, 550)]
-        self.bank_coords = [(1130, 225), (70, 350)]
+        self.size = (890, 800)
+        self.cardfield_coords = [(20, 120), (700, 550)]
+        self.bank_coords = [(770, 160), (70, 350)]
         self.screen = pg.display.set_mode(self.size)
         self.done = False
         self.p_socket = player_socket
@@ -220,7 +220,7 @@ class GGame:
 
     def buttons_init(self):
         self.buttons = {}
-        self.buttons['complete_move'] = GButton("Complete move", (850, 500), (200, 100), 1, 36)
+        self.buttons['complete_move'] = GButton("OK", (755, 550), (100, 70), 1, 36)
 
     def update(self):
         player = self.state.players[self.state.id[0]]
@@ -238,8 +238,8 @@ class GGame:
     def draw(self):
         self.update()
         self.screen.fill(BACKGROUND)
-        self.screen.blit(self.player, (50, 700))
-        self.screen.blit(self.opponent, (50, 0))
+        self.screen.blit(self.player, (20, 700))
+        self.screen.blit(self.opponent, (20, 0))
         self.screen.blit(self.cardfield, self.cardfield_coords[0])
         self.screen.blit(self.bank, self.bank_coords[0])
         for button in self.buttons.values():
@@ -303,8 +303,9 @@ class GGame:
     def gameover(self):
         is_win = self.state.winner == self.state.id[1]
         result = is_win * 'You won!' + (not is_win) * 'You lose!'
-        res_surf = pg.font.Font(None, 120).render(result, 1, (200, 50, 50))
-        self.screen.blit(res_surf, (820, 120))
+        res_surf = pg.font.Font(None, 150).render(result, 1, (200, 50, 50))
+        self.screen.fill(BACKGROUND)
+        self.screen.blit(res_surf, (210, 340))
         pg.display.update()
         time.sleep(3)
 
@@ -372,6 +373,10 @@ def recieve_message(client_socket):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print('Please enter IP and port')
+        sys.exit()
+
     IP = str(sys.argv[1])
     PORT = int(sys.argv[2])
 

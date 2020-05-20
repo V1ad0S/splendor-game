@@ -1,9 +1,21 @@
 import sys, socket, time
 from baseclasses import Game
 
+
+if len(sys.argv) != 3:
+    print('Please enter IP and port')
+    sys.exit()
+
 IP = str(sys.argv[1])
 PORT = int(sys.argv[2])
 HEADER_LENGTH = 5
+COLORS = {
+    '0': 'brown',
+    '1': 'white',
+    '2': 'red',
+    '3': 'green',
+    '4': 'blue',
+}
 
 SERVER_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 SERVER_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -12,7 +24,6 @@ SERVER_SOCKET.listen()
 
 players_sockets = []
 players_names = []
-
 
 print(f'Listening for connections on {IP}:{PORT}...')
 
@@ -69,13 +80,6 @@ while True:
             time.sleep(1)
         break
 
-COLORS = {
-    '0': 'brown',
-    '1': 'white',
-    '2': 'red',
-    '3': 'green',
-    '4': 'blue',
-}
 
 cur_p_id = 0
 block = False
@@ -107,5 +111,3 @@ while True:
         block = True
     else:
         send_message(players_sockets[cur_p_id], 'False')
-
-
