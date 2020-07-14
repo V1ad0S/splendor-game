@@ -29,20 +29,35 @@ class GemSet:
     def __str__(self):
         return ' '.join([str(gem) for gem in self.gems.values()])
 
+    def transpose_index_to_key(self, gem: 'int or str'):
+        if gem not in self.gems.keys() and gem not in range(5):
+            return False
+        gem_key = gem
+        if gem in range(5):
+            gem_key = list(self.gems.keys())[gem]
+        return gem_key
+
     def get_gems_list(self):
         return list(self.gems.values())
 
     def get_keys(self) -> 'dict_keys':
         return self.gems.keys()
 
-    def get_gems(self, gem_key: str) -> int:
-        return self.gems[gem_key]
+    def get_gems(self, gem: 'key or index') -> int:
+        gem_key = self.transpose_index_to_key(gem)
+        if gem_key:
+            return self.gems[gem_key]
+        return False
 
-    def add_gems(self, gem_key: str, amount: int):
-        self.gems[gem_key] += max(0, amount)
+    def add_gems(self, gem: 'key or index', amount: int):
+        gem_key = self.transpose_index_to_key(gem)
+        if gem_key:
+            self.gems[gem_key] += max(0, amount)
 
-    def remove_gems(self, gem_key: str, amount: int):
-        self.gems[gem_key] = max(0, self.gems[gem_key] - amount)
+    def remove_gems(self, gem: 'key or index', amount: int):
+        gem_key = self.transpose_index_to_key(gem)
+        if gem_key:
+            self.gems[gem_key] = max(0, self.gems[gem_key] - amount)
 
     def get_count(self) -> int:
         return sum(self.gems.values())
@@ -80,8 +95,8 @@ class Bank:
         for color in colors:
             self.gems.remove_gems(color, 1)
         gems_list = []
-        for key in self.gems.get_keys():
-            if key in colors:
+        for i, key in zip(range(5), self.gems.get_keys()):
+            if key in colors or i in colors:
                 gems_list.append(1)
             else:
                 gems_list.append(0)
