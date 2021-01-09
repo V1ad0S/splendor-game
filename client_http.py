@@ -44,6 +44,7 @@ class ClientGGame(GGame):
     def main(self):
         self.clicked_gems = []
         while not self.done:
+            self.clock.tick(self.fps)
             if self.state.cur_player != self.state.id[0]:
                 resp = req.get(f'{self.server_link}game/{self.name}')
                 if resp.json()['status']:
