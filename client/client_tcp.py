@@ -48,8 +48,8 @@ class ClientGame(GGame):
     def mouse_event_handler(self, event):
         if self.state.cur_player != self.state.id[0] or event.button != 1:
             return
-        card = self.get_clicked_card_coords(event.pos)
-        gem = self.get_clicked_bankgem_number(event.pos)
+        card = self.cardfield.get_clicked_card_coords(event.pos)
+        gem = self.bank.get_clicked_bankgem_number(event.pos)
         button = self.get_clicked_button_id(event.pos)
         if not gem is False:
             self.clicked_gems.append(gem)

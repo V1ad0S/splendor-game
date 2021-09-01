@@ -3,6 +3,11 @@ import sys, time
 
 from graphics import GGame
 
+def disconnect():
+    print('\ndisconnecting...')
+    req.get(server + 'disconnect/' + name)
+
+
 
 class ClientGGame(GGame):
     def __init__(self, player_id: str, init_state: str, name: str, link: str = 'http://localhost:5000/'):
@@ -64,7 +69,7 @@ class ClientGGame(GGame):
             data = resp.json()
             status = data['status']
             details = data['details']
-        except KeyError or TypeError:
+        except (KeyError, TypeError):
             print('Incorrect server response')
             return False
         if status:
@@ -84,6 +89,7 @@ if __name__ == '__main__':
         if server[-1] != '/':
             server += '/'
 
+    # connecting
     while True:
         try:
             name = input('Enter name:\t')
@@ -95,14 +101,24 @@ if __name__ == '__main__':
             break
         print(resp.json()['details'])
 
-    while True:
-        resp = req.get(server + 'start_game/' + name)
-        time.sleep(1)
-        print(resp.json()['details'])
-        if resp.json()['status']:
-            id = resp.json()['id']
-            init_state = resp.json()['init_state']
-            break
+    # waiting players
+    try:
+        while True:
+            resp = req.get(server + 'start_game/' + name)
+            time.sleep(1)
+            print(resp.json()['details'], end='')
+            if resp.json()['status']:
+                id = resp.json()['id']
+                init_state = resp.json()['init_state']
+                print()
+                break
+    except KeyboardInterrupt:
+        disconnect()
+        sys.exit(1)
 
-    ClientGGame(id, init_state, name, server).main()
-    req.get(server + 'disconnect/' + name)
+    # playing
+    try:
+        ClientGGame(id, init_state, name, server).main()
+    except KeyboardInterrupt:
+        pass
+    disconnect()

@@ -34,6 +34,7 @@ def new_connection():
     if name_details := check_name(name, players):
         return make_dict_for_response(name_details)
     players.append(name)
+    print(f'Player {name} connected')
     return make_dict_for_response()
 
 @app.route('/disconnect/<string:name>')
@@ -54,9 +55,9 @@ def start_game(name):
             game = Game(players)
             game.lay_out_all()
         init_state = game.encode_state()
-        return {'status': True, 'details': 'game starts', 'id': str(players.index(name)), 'init_state': init_state}
+        return {'status': True, 'details': '\nGame starts', 'id': str(players.index(name)), 'init_state': init_state}
     if len(players) < 2:
-        return make_dict_for_response('Waiting players')
+        return make_dict_for_response('\rWaiting players')
     if name not in players:
         return make_dict_for_response("You aren't joined to the game")
 
@@ -76,7 +77,7 @@ def wait_move(name):
         name = data['name']
         move = data['move']
         details = data['details']
-    except KeyError or TypeError:
+    except (KeyError, TypeError):
         return make_dict_for_response('Incorrect request. Json with "name", "move", "details" keys was expected')
     if current_player_id != players.index(name):
         return make_dict_for_response('Expect your turn')
@@ -102,6 +103,5 @@ def wait_move(name):
         block = True
         return {'status': True, 'details': 'Correct move', 'state': game.encode_state()}
     return make_dict_for_response('Denied')
-
 
 app.run()
